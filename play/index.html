@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1a1528">
+<title>موبو — العب الآن</title>
+<link rel="icon" href="loading/icon.png">
+<style>
+:root {
+	--ink: #1a1528;
+	--ink-2: #2a2140;
+	--paper: #f4f0ff;
+	--gold: #ffe9a8;
+	--violet: #7b4fd6;
+}
+html, body, #canvas { margin: 0; padding: 0; border: 0; }
+body {
+	background: var(--ink);
+	color: var(--paper);
+	overflow: hidden;
+	touch-action: none;
+	font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", "Geeza Pro", sans-serif;
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-tap-highlight-color: transparent;
+}
+#canvas { display: block; position: fixed; inset: 0; }
+#canvas:focus { outline: none; }
+
+/* Loading screen */
+#boot {
+	position: fixed;
+	inset: 0;
+	z-index: 10;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 2vh;
+	padding: 12px 16px;
+	background: var(--ink) url("loading/bg.png") center / cover no-repeat;
+	image-rendering: pixelated;
+	transition: opacity 0.35s;
+}
+#boot::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(180deg, rgba(26, 21, 40, 0.15), rgba(26, 21, 40, 0.75));
+}
+#boot > * { position: relative; }
+#boot.gone { opacity: 0; pointer-events: none; }
+#logo { height: min(20vh, 133px); width: auto; image-rendering: pixelated; }
+#mobo {
+	width: min(17vh, 112px);
+	height: min(17vh, 112px);
+	background: url("loading/mobo_idle.png") 0 0 / 800% 100% no-repeat;
+	image-rendering: pixelated;
+	animation: idle 1.1s steps(8) infinite;
+}
+@keyframes idle { to { background-position: 114.2857% 0; } }
+#bar {
+	width: min(60vw, 420px);
+	height: 14px;
+	border-radius: 7px;
+	background: rgba(26, 21, 40, 0.8);
+	box-shadow: 0 0 0 2px rgba(244, 240, 255, 0.55);
+	overflow: hidden;
+	direction: ltr;
+}
+#fill {
+	height: 100%;
+	width: 0%;
+	background: linear-gradient(90deg, #ff4f6d, #ffb84f, #ffe94f, #6dff8a, #4fc3ff, #8a6dff);
+	transition: width 0.2s;
+}
+#status { font-size: 16px; min-height: 1.4em; text-shadow: 0 2px 0 var(--ink); text-align: center; padding: 0 16px; }
+#play {
+	display: none;
+	min-width: 220px;
+	padding: min(2.6vh, 14px) 34px;
+	font: inherit;
+	font-size: min(5vh, 22px);
+	font-weight: 700;
+	color: var(--paper);
+	background: linear-gradient(180deg, #9a6cf0, var(--violet) 55%, #5a33b0);
+	border: 3px solid var(--ink);
+	border-radius: 14px;
+	box-shadow: 0 4px 0 var(--ink), inset 0 2px 0 rgba(255, 255, 255, 0.35);
+	cursor: pointer;
+}
+#play:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+#boot.ready #play { display: block; }
+#boot.ready #bar { display: none; }
+#hint { font-size: 13px; opacity: 0.8; text-align: center; max-width: 520px; padding: 0 16px; line-height: 1.6; }
+#back { position: absolute; top: 14px; inset-inline-start: 16px; color: var(--paper); font-size: 14px; opacity: 0.85; }
+
+/* Turn the phone sideways */
+#rotate {
+	position: fixed;
+	inset: 0;
+	z-index: 20;
+	display: none;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 18px;
+	background: var(--ink);
+	text-align: center;
+	font-size: 18px;
+	padding: 24px;
+}
+#rotate .phone {
+	width: 46px;
+	height: 78px;
+	border: 4px solid var(--paper);
+	border-radius: 10px;
+	animation: turn 1.8s ease-in-out infinite;
+}
+@keyframes turn { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
+@media (pointer: coarse) and (max-aspect-ratio: 4/5) {
+	#rotate { display: flex; }
+}
+</style>
+<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
+<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
+
+</head>
+<body>
+<canvas id="canvas">متصفحك لا يدعم تشغيل اللعبة.</canvas>
+<noscript>فعّل JavaScript لتشغيل اللعبة.</noscript>
+
+<div id="boot">
+	<a id="back" href="../">→ الرجوع للموقع</a>
+	<img id="logo" src="loading/logo.png" alt="Mobo">
+	<div id="mobo" role="img" aria-label="موبو"></div>
+	<div id="bar"><div id="fill"></div></div>
+	<button id="play" type="button">ابدأ اللعب</button>
+	<div id="status">جاري تحميل اللعبة…</div>
+	<div id="hint"></div>
+</div>
+
+<div id="rotate">
+	<div class="phone"></div>
+	<div>لفّ جوالك بالعرض عشان تلعب</div>
+</div>
+
+<script src="index.js"></script>
+<script>
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":13078476,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_THREADS_ENABLED = false;
+
+(function () {
+	const boot = document.getElementById('boot');
+	const fill = document.getElementById('fill');
+	const status = document.getElementById('status');
+	const hint = document.getElementById('hint');
+	const play = document.getElementById('play');
+	const touch = window.matchMedia('(pointer: coarse)').matches;
+
+	hint.textContent = touch
+		? 'اللعبة تفتح بملء الشاشة. تقدمك ينحفظ في هذا المتصفح.'
+		: 'التحكم: الأسهم أو WASD للحركة · Space قفز · J عضّة · L اندفاع · E القلم والرسم بالماوس · Q تبديل القلم · M الخريطة · Esc إيقاف. تقدمك ينحفظ في هذا المتصفح.';
+
+	function fail(err) {
+		console.error(err);
+		boot.classList.remove('ready');
+		status.textContent = 'ما قدرنا نشغّل اللعبة في هذا المتصفح. جرّب Chrome أو Edge أو Safari بآخر تحديث.';
+		hint.textContent = (err && err.message) ? err.message : String(err);
+	}
+
+	const missing = Engine.getMissingFeatures({ threads: GODOT_THREADS_ENABLED });
+	if (missing.length !== 0) {
+		fail(new Error('Missing: ' + missing.join(', ')));
+		return;
+	}
+
+	const exe = GODOT_CONFIG['executable'];
+	const pack = GODOT_CONFIG['mainPack'] || exe + '.pck';
+	const engine = new Engine(Object.assign({}, GODOT_CONFIG, {
+		args: ['--main-pack', pack].concat(GODOT_CONFIG['args'] || []),
+		onProgress: function (current, total) {
+			if (current > 0 && total > 0) {
+				const pct = Math.min(100, Math.floor((current / total) * 100));
+				fill.style.width = pct + '%';
+				status.textContent = 'جاري تحميل اللعبة… ' + pct + '%';
+			}
+		},
+	}));
+
+	Promise.all([engine.init(exe), engine.preloadFile(pack, pack)]).then(function () {
+		fill.style.width = '100%';
+		boot.classList.add('ready');
+		status.textContent = '';
+		play.focus();
+	}, fail);
+
+	// Phones play fullscreen and sideways. Fullscreen needs a tap, so it is asked on the start
+	// button and asked again on the next tap whenever the browser drops it (Back, a notification).
+	function goFullscreen() {
+		const root = document.documentElement;
+		const fs = root.requestFullscreen || root.webkitRequestFullscreen;
+		if (!fs || document.fullscreenElement || document.webkitFullscreenElement) return;
+		Promise.resolve(fs.call(root, { navigationUI: 'hide' })).then(function () {
+			if (screen.orientation && screen.orientation.lock) {
+				return screen.orientation.lock('landscape');
+			}
+		}).catch(function () {});
+	}
+
+	let started = false;
+	play.addEventListener('click', function () {
+		if (started) return;
+		started = true;
+		if (touch) goFullscreen();
+		status.textContent = 'لحظة…';
+		play.disabled = true;
+		engine.start().then(function () {
+			boot.classList.add('gone');
+			setTimeout(function () { boot.remove(); }, 400);
+			const canvas = document.getElementById('canvas');
+			canvas.focus();
+			if (touch) canvas.addEventListener('touchend', goFullscreen);
+			// Progress is saved as you play; this only stops a stray Back from closing the game.
+			window.addEventListener('beforeunload', function (e) {
+				e.preventDefault();
+				e.returnValue = '';
+			});
+		}, fail);
+	});
+}());
+</script>
+</body>
+</html>
+
